@@ -31,6 +31,7 @@ limitations under the License.
 #include "absl/types/span.h"
 #include "llvm/Support/ExtensibleRTTI.h"
 #include "xla/literal.h"
+#include "xla/pjrt/distributed/key_value_store_interface.h"
 #include "xla/pjrt/pjrt_client.h"
 #include "xla/pjrt/pjrt_compiler.h"
 #include "xla/pjrt/pjrt_layout.h"
@@ -89,7 +90,8 @@ class PjRtClient final
  public:
   // Creates a `Client` with a `PjRtClient`.
   static std::unique_ptr<PjRtClient> Create(
-      std::shared_ptr<xla::PjRtClient> pjrt_client);
+      std::shared_ptr<xla::PjRtClient> pjrt_client,
+      std::shared_ptr<KeyValueStoreInterface> kv_store = nullptr);
 
   // PjRtCompatibleClient implementation.
 
@@ -207,11 +209,14 @@ class PjRtClient final
   // Transfer and return a value of the given shape from the outfeed queue.
   absl::Status TransferFromOutfeed(PjRtDevice* device,
                                    MutableBorrowingLiteral literal);
+  KeyValueStoreInterface* kv_store() const { return kv_store_.get(); }
 
   static char ID;  // NOLINT
 
  private:
-  explicit PjRtClient(std::shared_ptr<xla::PjRtClient> pjrt_client);
+  explicit PjRtClient(
+      std::shared_ptr<xla::PjRtClient> pjrt_client,
+      std::shared_ptr<KeyValueStoreInterface> kv_store = nullptr);
 
   std::shared_ptr<xla::PjRtClient> pjrt_client_;
   PjRtCompiler default_compiler_;
@@ -223,6 +228,7 @@ class PjRtClient final
   absl::flat_hash_map<xla::PjRtMemorySpace*, std::unique_ptr<PjRtMemory>>
       memory_map_;
   absl::flat_hash_map<DeviceId, PjRtDevice*> device_id_map_;
+  std::shared_ptr<KeyValueStoreInterface> kv_store_;
 };
 
 }  // namespace ifrt

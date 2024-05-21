@@ -382,7 +382,8 @@ NB_MODULE(xla_extension, m_nb) {
           }
           std::unique_ptr<PjRtClient> c_api_client = xla::ValueOrThrow(
               GetCApiClient(platform_name, options, kv_store));
-          ifrt_client = ifrt::PjRtClient::Create(std::move(c_api_client));
+          ifrt_client =
+              ifrt::PjRtClient::Create(std::move(c_api_client), kv_store);
         }
         return PyClient::Make(std::move(ifrt_client));
       },

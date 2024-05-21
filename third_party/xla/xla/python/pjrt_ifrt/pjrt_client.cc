@@ -41,6 +41,7 @@ limitations under the License.
 #include "llvm/Support/Casting.h"
 #include "xla/layout.h"
 #include "xla/literal.h"
+#include "xla/pjrt/distributed/key_value_store_interface.h"
 #include "xla/pjrt/pjrt_client.h"
 #include "xla/pjrt/pjrt_compiler.h"
 #include "xla/pjrt/pjrt_future.h"
@@ -250,12 +251,17 @@ char PjRtCompatibleClient::ID = 0;
 char PjRtClient::ID = 0;
 
 std::unique_ptr<PjRtClient> PjRtClient::Create(
-    std::shared_ptr<xla::PjRtClient> pjrt_client) {
-  return absl::WrapUnique(new PjRtClient(std::move(pjrt_client)));
+    std::shared_ptr<xla::PjRtClient> pjrt_client,
+    std::shared_ptr<KeyValueStoreInterface> kv_store) {
+  return absl::WrapUnique(
+      new PjRtClient(std::move(pjrt_client), std::move(kv_store)));
 }
 
-PjRtClient::PjRtClient(std::shared_ptr<xla::PjRtClient> pjrt_client)
-    : pjrt_client_(std::move(pjrt_client)), default_compiler_(this) {
+PjRtClient::PjRtClient(std::shared_ptr<xla::PjRtClient> pjrt_client,
+                       std::shared_ptr<KeyValueStoreInterface> kv_store)
+    : pjrt_client_(std::move(pjrt_client)),
+      default_compiler_(this),
+      kv_store_(std::move(kv_store)) {
   devices_.reserve(pjrt_client_->devices().size());
   device_map_.reserve(pjrt_client_->devices().size());
   for (xla::PjRtDevice* device : pjrt_client_->devices()) {
