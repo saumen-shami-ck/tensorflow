@@ -155,6 +155,8 @@ release. It may break some edge cases of TensorFlow API usage.
     * Flatbuffer version update:
         * `GetTemporaryPointer()` bug fixed.
     * Add int64 data type support for dynamic update slice's indice tensor. 
+    * `Dequantize` op supports `TensorType_INT4`.
+        * This change includes per-channel dequantization.
 
 * `tf.data`
     * Add `wait` to `tf.data.Dataset.load`. If `True`, for snapshots written
