@@ -24,7 +24,6 @@ limitations under the License.
 #include "tensorflow/compiler/mlir/quantization/common/attrs_and_constraints.h"
 #include "tensorflow/compiler/mlir/quantization/tensorflow/cc/constant_fold.h"
 #include "xla/xla_data.pb.h"
-#include "tensorflow/lite/kernels/padding.h"
 
 namespace mlir::quant {
 namespace {
@@ -188,12 +187,21 @@ Value CalculatePaddingAndPadIfNeeded(OpBuilder &builder, Location loc,
       int filter_size = filter_shape.getDimSize(i - 1);
       int stride_i = mlir::cast<IntegerAttr>(strides[i]).getInt();
       int dilation_i = mlir::cast<IntegerAttr>(dilations[i]).getInt();
-      int out_size = tflite::ComputeOutSize(kTfLitePaddingSame, input_size,
-                                            filter_size, stride_i, dilation_i);
 
-      int offset = 0;
-      int padding_before = tflite::ComputePaddingWithOffset(
-          stride_i, dilation_i, input_size, filter_size, out_size, &offset);
+      int out_size = 0;
+      // Roughly follows TFLite's `ComputeOutSize`.
+      if (stride_i != 0) {
+        out_size = (input_size + stride_i - 1) / stride_i;
+      }
+
+      // Roughly follows TFLite's `ComputePaddingWithOffset`.
+      int effective_filter_size = (filter_size - 1) * dilation_i + 1;
+      int total_padding =
+          ((out_size - 1) * stride_i + effective_filter_size - input_size);
+      total_padding = total_padding > 0 ? total_padding : 0;
+      int offset = total_padding % 2;
+      int padding_before = total_padding / 2;
+
       int padding_after = padding_before + offset;
       padding_values[2 * i] = padding_before;
       padding_values[2 * i + 1] = padding_after;
