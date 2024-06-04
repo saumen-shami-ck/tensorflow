@@ -124,6 +124,12 @@ MockClient::MockClient(std::unique_ptr<xla::ifrt::Client> delegated)
         return delegated_->AssembleArrayFromSingleDeviceArrays(
             std::move(shape), std::move(sharding), arrays, semantics);
       });
+  ON_CALL(*this, CopyArrays)
+      .WillByDefault([this](absl::Span<tsl::RCReference<Array>> arrays,
+                            const DeviceList& devices, MemoryKind memory_kind,
+                            ArrayCopySemantics semantics) {
+        return delegated_->CopyArrays(arrays, devices, memory_kind, semantics);
+      });
   ON_CALL(*this, RemapArrays)
       .WillByDefault([this](const RemapPlan& plan,
                             absl::Span<tsl::RCReference<Array>> arrays,

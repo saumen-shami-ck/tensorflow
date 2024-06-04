@@ -179,6 +179,13 @@ class CompileOnlyIfRtClient final
         "client.");
   }
 
+  absl::StatusOr<std::vector<tsl::RCReference<ifrt::Array>>> CopyArrays(
+      absl::Span<tsl::RCReference<ifrt::Array>> arrays,
+      const ifrt::DeviceList& devices, ifrt::MemoryKind memory_kind,
+      ifrt::ArrayCopySemantics semantics) override {
+    return Unimplemented("CopyArrays not available with compile-only client.");
+  }
+
   absl::StatusOr<std::vector<tsl::RCReference<ifrt::Array>>> RemapArrays(
       const ifrt::RemapPlan& plan,
       absl::Span<tsl::RCReference<ifrt::Array>> arrays,

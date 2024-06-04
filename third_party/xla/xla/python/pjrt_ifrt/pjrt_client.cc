@@ -516,6 +516,21 @@ PjRtClient::AssembleArrayFromSingleDeviceArrays(
                            std::move(buffers));
 }
 
+absl::StatusOr<std::vector<tsl::RCReference<Array>>> PjRtClient::CopyArrays(
+    absl::Span<tsl::RCReference<Array>> arrays, const DeviceList& devices,
+    MemoryKind memory_kind, ArrayCopySemantics semantics) {
+  std::vector<tsl::RCReference<Array>> new_arrays;
+  new_arrays.reserve(arrays.size());
+  for (const auto& array : arrays) {
+    TF_ASSIGN_OR_RETURN(
+        auto new_sharding,
+        array->sharding().WithDeviceAssignment(devices, memory_kind));
+    TF_ASSIGN_OR_RETURN(new_arrays.emplace_back(),
+                        array->Reshard(std::move(new_sharding), semantics));
+  }
+  return new_arrays;
+}
+
 absl::StatusOr<std::vector<tsl::RCReference<xla::ifrt::Array>>>
 PjRtClient::RemapArrays(const RemapPlan& plan,
                         absl::Span<tsl::RCReference<xla::ifrt::Array>> arrays,

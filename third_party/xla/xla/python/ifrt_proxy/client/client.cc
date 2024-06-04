@@ -37,6 +37,7 @@
 #include "xla/python/ifrt/device.h"
 #include "xla/python/ifrt/dtype.h"
 #include "xla/python/ifrt/future.h"
+#include "xla/python/ifrt/memory.h"
 #include "xla/python/ifrt/remap_plan.h"
 #include "xla/python/ifrt/shape.h"
 #include "xla/python/ifrt/sharding.h"
@@ -198,6 +199,24 @@ Client::AssembleArrayFromSingleDeviceArrays(
     ArrayCopySemantics semantics) {
   return Array::AssembleArrayFromSingleDeviceArrays(
       this, rpc_helper_, std::move(shape), sharding, arrays, semantics);
+}
+
+absl::StatusOr<std::vector<tsl::RCReference<xla::ifrt::Array>>>
+Client::CopyArrays(absl::Span<tsl::RCReference<xla::ifrt::Array>> arrays,
+                   const DeviceList& devices, MemoryKind memory_kind,
+                   ArrayCopySemantics semantics) {
+  // TODO(b/343992694): Implement a batched version natively and deprecate the
+  // non-batched version.
+  std::vector<tsl::RCReference<xla::ifrt::Array>> new_arrays;
+  new_arrays.reserve(arrays.size());
+  for (const auto& array : arrays) {
+    TF_ASSIGN_OR_RETURN(
+        auto new_sharding,
+        array->sharding().WithDeviceAssignment(devices, memory_kind));
+    TF_ASSIGN_OR_RETURN(new_arrays.emplace_back(),
+                        array->Reshard(std::move(new_sharding), semantics));
+  }
+  return new_arrays;
 }
 
 absl::StatusOr<std::vector<tsl::RCReference<xla::ifrt::Array>>>
