@@ -29,6 +29,7 @@ limitations under the License.
 #include "xla/hlo/ir/hlo_module.h"
 #include "xla/literal.h"
 #include "xla/pjrt/distributed/distributed.h"
+#include "xla/pjrt/gpu/se_gpu_pjrt_client.h"
 #include "xla/pjrt/pjrt_client.h"
 #include "xla/pjrt/pjrt_executable.h"
 #include "xla/statusor.h"
@@ -223,19 +224,12 @@ class FunctionalHloRunner {
   static absl::StatusOr<std::unique_ptr<PjRtClient>> CreateHostClient();
 
   // Create a PjRtClient which can run HLOs on GPU.
-  static absl::StatusOr<std::unique_ptr<PjRtClient>> CreateGpuClient();
+  static absl::StatusOr<std::unique_ptr<PjRtClient>> CreateGpuClient(
+      GpuClientOptions options);
 
   // Create a PjRtClient which mocks multi-hosts GPU run
   static absl::StatusOr<std::unique_ptr<PjRtClient>> CreateMockGpuClient(
       int num_nodes = 1);
-
-  // Create a PjRtClient which can run HLOs on GPUs distributed across several
-  // nodes.
-  // The distributed client pointer passed as a parameter is expected to be
-  // non-null, and 0 <= node_id < num_nodes must hold.
-  static absl::StatusOr<std::unique_ptr<PjRtClient>> CreateGpuClient(
-      std::shared_ptr<xla::DistributedRuntimeClient> distributed_client,
-      int node_id, int num_nodes);
 
   // Loads an ExecutionOptions proto (which can be used in RawCompileOptions).
   static absl::StatusOr<ExecutionOptions> LoadExecutionOptions(
@@ -248,7 +242,8 @@ class FunctionalHloRunner {
   static absl::StatusOr<CompileOptions> CreateCompileOptions(
       const PjRtClient& client,
       const FunctionalHloRunner::RawCompileOptions& raw_options,
-      int task_id = 0);
+      int task_id = 0, int num_nodes = 1,
+      std::shared_ptr<xla::KeyValueStoreInterface> kv_store = nullptr);
 
   // Runs on HLO module and dumps the output if needed.
   //
@@ -259,7 +254,8 @@ class FunctionalHloRunner {
       const xla::FunctionalHloRunner::RawCompileOptions& raw_compile_options,
       const xla::FunctionalHloRunner::RunningOptions& running_options,
       absl::string_view hlo_text, InputFormat input_format,
-      std::string dump_output_to = "", int task_id = 0);
+      std::string dump_output_to = "", int task_id = 0, int num_nodes = 1,
+      std::shared_ptr<xla::KeyValueStoreInterface> kv_store = nullptr);
 
   // Loads an HLO module from hlo_file according to input_format and run it.
   // The HLO module is run with the provided arguments if the arguments map is
@@ -281,7 +277,8 @@ class FunctionalHloRunner {
       PjRtClient& client, const DebugOptions& debug_options,
       const PreprocessingOptions& preproc_options,
       const RawCompileOptions& raw_compile_options, std::string_view hlo_file,
-      InputFormat input_format, int task_id = 0);
+      InputFormat input_format, int task_id = 0, int num_nodes = 1,
+      std::shared_ptr<xla::KeyValueStoreInterface> kv_store = nullptr);
 
   // Compiles and runs the given HLO module with the given arguments for each
   // device. The given arguments is a map from device ID to a list of arguments.
