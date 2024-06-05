@@ -222,13 +222,30 @@ std::string PrintStepEvents(const StepEvents& step_events) {
   return absl::StrCat(result, "\n}");
 }
 
-void CombineStepEvents(const StepEvents& src, StepEvents* dst) {
+void UnionCombineStepEvents(const StepEvents& src, StepEvents* dst) {
   for (const auto& step_details : src) {
     int64_t step_id = step_details.first;
     const StepDetails& src_details = step_details.second;
     StepDetails* dst_details = &(*dst)[step_id];
     dst_details->Combine(src_details);
   }
+}
+
+void IntersectCombineStepEvents(const StepEvents& src, StepEvents* dst) {
+  if (dst->empty()) {
+    *dst = src;
+    return;
+  }
+  StepEvents intersection;
+  for (const auto& step_details : src) {
+    int64_t step_id = step_details.first;
+    const StepDetails& src_details = step_details.second;
+    if (dst->contains(step_id)) {
+      StepDetails* dst_details = &intersection[step_id];
+      dst_details->Combine(src_details);
+    }
+  }
+  *dst = intersection;
 }
 
 std::vector<EventTypeSpan> ToNonOverlappedEvents(
