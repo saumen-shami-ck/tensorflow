@@ -226,6 +226,7 @@ absl::StatusOr<bool> AsyncCollectiveCreator::Run(
     HloModule* module,
     const absl::flat_hash_set<absl::string_view>& execution_threads) {
   bool changed = false;
+  int total_collectives_replaced = 0;
   for (HloComputation* computation :
        module->MakeNonfusionComputations(execution_threads)) {
     std::vector<HloInstruction*> supported_collectives =
@@ -235,8 +236,11 @@ absl::StatusOr<bool> AsyncCollectiveCreator::Run(
     }
     TF_ASSIGN_OR_RETURN(bool comp_changed,
                         ReplaceCollectives(computation, supported_collectives));
+    total_collectives_replaced += supported_collectives.size();
     changed |= comp_changed;
   }
+  VLOG(1) << "Replaced " << total_collectives_replaced
+          << " sync collectives with async versions.";
   return changed;
 }
 
